@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  # Serviço da aplicação Spring Boot
+  audit-log-crud:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:mysql://db:3306/auditlog
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=perola20  # Atualize com a senha correta
+    depends_on:
+      - db
+
+  # Banco de dados MySQL
+  db:
+    image: mysql:8
+    environment:
+      MYSQL_DATABASE: auditlog
+      MYSQL_ROOT_PASSWORD: perola20  # Atualize a senha, se necessário
+    volumes:
+      - mysql_data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+
+volumes:
+  mysql_data:
+    driver: local
