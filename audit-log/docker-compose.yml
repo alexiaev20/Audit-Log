@@ -1,29 +1,98 @@
 version: '3.8'
 
 services:
-  # Serviço da aplicação Spring Boot
-  audit-log-crud:
+  mysql:
+    image: mysql:8.0
+    container_name: audit-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: audit_log_db
+    ports:
+      - "3306:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      retries: 5
+
+  mongodb:
+    image: mongo:6.0
+    container_name: audit-mongo
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: root
+    ports:
+      - "27017:27017"
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:latest
+    container_name: audit-zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+
+  kafka:
+    image: confluentinc/cp-kafka:latest
+    container_name: audit-kafka
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+
+  zipkin:
+    image: openzipkin/zipkin
+    container_name: audit-zipkin
+    ports:
+      - "9411:9411"
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.10.2
+    container_name: audit-elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ports:
+      - "9200:9200"
+
+  logstash:
+    image: docker.elastic.co/logstash/logstash:8.10.2
+    container_name: audit-logstash
+    volumes:
+      - ./logstash/logstash.conf:/usr/share/logstash/pipeline/logstash.conf
+    ports:
+      - "5000:5000"
+    depends_on:
+      - elasticsearch
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.10.2
+    container_name: audit-kibana
+    ports:
+      - "5601:5601"
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+    depends_on:
+      - elasticsearch
+
+  app:
     build: .
+    container_name: audit-app
     ports:
       - "8080:8080"
     environment:
-      - SPRING_DATASOURCE_URL=jdbc:mysql://db:3306/auditlog
-      - SPRING_DATASOURCE_USERNAME=root
-      - SPRING_DATASOURCE_PASSWORD=perola20  # Atualize com a senha correta
+      - DB_HOST=mysql
+      - MONGO_HOST=mongodb
+      - KAFKA_BROKERS=kafka:29092
+      - ZIPKIN_URL=http://zipkin:9411
     depends_on:
-      - db
-
-  # Banco de dados MySQL
-  db:
-    image: mysql:8
-    environment:
-      MYSQL_DATABASE: auditlog
-      MYSQL_ROOT_PASSWORD: perola20  # Atualize a senha, se necessário
-    volumes:
-      - mysql_data:/var/lib/mysql
-    ports:
-      - "3306:3306"
-
-volumes:
-  mysql_data:
-    driver: local
+      - mysql
+      - mongodb
+      - kafka
+      - zipkin
+      - logstash
