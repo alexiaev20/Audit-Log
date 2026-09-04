@@ -1,6 +1,9 @@
 spring:
   application:
     name: audit-log-crud
+  data:
+    mongodb:
+      uri: mongodb://${MONGO_USER:root}:${MONGO_PASS:root}@${MONGO_HOST:localhost}:${MONGO_PORT:27017}/${MONGO_DB:audit_log_db}?authSource=admin
   datasource:
     url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:audit_log_db}?createDatabaseIfNotExist=true
     username: ${DB_USER:root}
