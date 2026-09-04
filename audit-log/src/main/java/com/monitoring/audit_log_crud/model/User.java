@@ -1,6 +1,7 @@
 package com.monitoring.audit_log_crud.model;
 
 import jakarta.persistence.*;
+import com.monitoring.audit_log_crud.annotation.SensitiveData;
 import lombok.Data;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -22,6 +23,7 @@ public class User implements UserDetails {
     private String email;
 
     @Column(nullable = false)
+    @SensitiveData
     private String password;
 
     @Override
