@@ -28,6 +28,11 @@ spring:
     enabled: true
     baseline-on-migrate: true
 
+  tracing:
+    sampling:
+      probability: 1.0
+  zipkin:
+    base-url: ${ZIPKIN_URL:http://localhost:9411}
 api:
   security:
     token:
